@@ -13,6 +13,8 @@ def poll():
     data = json.loads(requests.get('https://lock.dy.tongqu.me/lock-terminal/faces?hid=' + os.environ.get('HID')).content)
     known_face_encodings = [x["landmarks"] for x in data]
     known_face_names = [x["user"] for x in data]
+    known_face_ids = [x["user_id"] for x in data]
+
 
     while True:
         # print("Capturing image.")
@@ -28,12 +30,18 @@ def poll():
 
             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
             name = None
+            user_id = None
 
             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
             best_match_index = np.argmin(face_distances)
 
             if matches[best_match_index]:
                 name = known_face_names[best_match_index]
+                user_id = known_face_ids[best_match_index]
 
             if name != None:
+                r = requests.post('https://lock.dy.tongqu.me/lock-terminal/unlock/face', {
+                    'hid': os.environ.get('HID'),
+                    'user_id': user_id
+                })
                 utils.welcome(name)
